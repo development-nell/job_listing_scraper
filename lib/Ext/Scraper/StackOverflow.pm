@@ -27,9 +27,12 @@ sub details  {
 
 	$self->get($listing->{uri});
 
-    if ($opt{scorer}) {
-        $listing->{score} = $opt{scorer}->($self->content);
-    }
+	if ($opt{scorer}) {
+        my $res = $opt{scorer}->($self->content);
+        $listing->{score} = $res->[0];
+        $listing->{matches} = $res->[1];
+    }   
+
 
 }
 

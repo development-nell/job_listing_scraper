@@ -62,6 +62,12 @@ __PACKAGE__->table("subsite");
   data_type: 'text'
   is_nullable: 1
 
+=head2 listing_type
+
+  data_type: 'enum'
+  extra: {list => ["JOB","GIG"]}
+  is_nullable: 1
+
 =cut
 
 __PACKAGE__->add_columns(
@@ -83,6 +89,12 @@ __PACKAGE__->add_columns(
   { data_type => "text", is_nullable => 1 },
   "search_url",
   { data_type => "text", is_nullable => 1 },
+  "listing_type",
+  {
+    data_type => "enum",
+    extra => { list => ["JOB", "GIG"] },
+    is_nullable => 1,
+  },
 );
 
 =head1 PRIMARY KEY
@@ -120,8 +132,8 @@ __PACKAGE__->belongs_to(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07045 @ 2017-04-30 20:02:10
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:GjlFgXrCNNzUiWZWiHYQZQ
+# Created by DBIx::Class::Schema::Loader v0.07045 @ 2017-07-11 14:19:28
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:WX6j4BXqi2QXOsOARGZSkQ
 
 
 # You can replace this text with custom code or comments, and it will be preserved on regeneration

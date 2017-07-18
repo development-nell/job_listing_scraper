@@ -102,6 +102,12 @@ __PACKAGE__->table("listing");
   data_type: 'integer'
   is_nullable: 1
 
+=head2 listing_type
+
+  data_type: 'enum'
+  extra: {list => ["JOB","GIG"]}
+  is_nullable: 1
+
 =cut
 
 __PACKAGE__->add_columns(
@@ -141,6 +147,12 @@ __PACKAGE__->add_columns(
   { data_type => "integer", extra => { unsigned => 1 }, is_nullable => 0 },
   "score",
   { data_type => "integer", is_nullable => 1 },
+  "listing_type",
+  {
+    data_type => "enum",
+    extra => { list => ["JOB", "GIG"] },
+    is_nullable => 1,
+  },
 );
 
 =head1 PRIMARY KEY
@@ -193,8 +205,8 @@ __PACKAGE__->belongs_to(
 );
 
 
-# Created by DBIx::Class::Schema::Loader v0.07045 @ 2017-05-01 11:26:34
-# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:5Ta0dB+DDEpLCWc/UZbNig
+# Created by DBIx::Class::Schema::Loader v0.07045 @ 2017-07-11 14:19:28
+# DO NOT MODIFY THIS OR ANYTHING ABOVE! md5sum:8IVeUpGbVI68UyBx61FABg
 
 __PACKAGE__->has_one(
   "company",

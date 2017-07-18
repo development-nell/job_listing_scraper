@@ -1,10 +1,11 @@
 package Ext::Scraper;
 
 use strict;
-use LWP::UserAgent;
+use LWP::Curl;
 use HTML::TreeBuilder::LibXML;
 use HTTP::Message;
 use Try::Tiny;
+use Data::Dumper;
 use DateTime;
 use Time::HiRes;
 use Moose;
@@ -15,12 +16,11 @@ use HTTP::Cookies;
 
 use utf8;
 our $VERSION = "0.01";
-our $ABSTRACT = "Scrape sites for job listings";
 use feature qw(say);
 
 usesub __PACKAGE__;
 
-has 'ua'=>(is=>'ro',isa=>'LWP::UserAgent',default=>sub {LWP::UserAgent->new()});
+has 'ua'=>(is=>'ro',isa=>'LWP::Curl',default=>sub {LWP::Curl->new()});
 has 'date'=>(is=>'rw',isa=>'DateTime',default=>sub {DateTime->now()});
 has 'search_url'=>(is=>'rw',isa=>'Str');
 has 'requires_login'=>(is=>'ro',isa=>'Bool',default=>0);
@@ -104,14 +104,10 @@ sub get {
 
 	$self->current_url($url);
 
-	$self->ua->agent('Mozilla/5.0 (X11; U; Linux x86_64; en-US) AppleWebKit/532.0 (KHTML, like Gecko) Chrome/4.0.202.0 Safari/532.0');
-	$self->ua->cookie_jar($self->cookie_jar) if ($self->cookie_jar);
-	my $res = $self->ua->get($self->uri($url),'Accept-Encoding'=>HTTP::Message::decodable);
-	$self->cookie_jar->extract_cookies($res);
+	my $res = $self->ua->get($self->uri($url));
 
-
-	if ($res->code == 200) {
-		return $self->process_result($res->decoded_content);
+	if ($res) {
+		return $self->process_result($res);
 	} elsif ($res->code eq "302") {
 		return undef;
 	} else {

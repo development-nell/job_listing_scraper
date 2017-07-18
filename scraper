@@ -1,0 +1,91 @@
+#!/usr/bin/env perl
+
+use strict;
+use feature qw(say);
+use DBI;
+use Try::Tiny;
+use Data::Dumper;
+use List::NSect qw(spart);
+use Ext::Schema;
+use Ext::Scraper;
+
+my ($keywords,$site) = @ARGV;
+die "Enter keywords plz" if(!$keywords);
+
+
+my $db = Ext::Schema->connect({dsn => "dbi:mysql:database=$ENV{SCRAPER_DB_NAME}",user => "$ENV{SCRAPER_DB_USER}",password => "$ENV{SCRAPER_DB_PASSWORD}"});
+
+my $criteria = [$db->resultset("SiteListingCrit")->all];
+my $requires = "(?:".join("|",map {$_->pattern} grep {$_->aor=~/ACCEPT/} $db->resultset("SiteListingCrit")->search({aor=>"ACCEPT"})->all).")/";
+my $reject = "(?:".join("|",map {$_->pattern} grep {$_->aor=~/REJECT/} $db->resultset("SiteListingCrit")->search({aor=>"REJECT"})->all).")";
+my $score_criteria = [$db->resultset("ListingScore")->all];
+
+my $score_listing = sub {
+	my ($tree) = @_;
+	
+	my $content = ($tree->find("body"))[0]->as_text;
+	my $score=0;
+	foreach my $crit (@$score_criteria) {
+		my $pattern = $crit->pattern;
+		my $count = () = $content=~/\b$pattern\b/ig;
+		$count*=$crit->multiplier;
+		$score+=$count;
+	}
+	return $score;
+};
+
+my @sites;
+
+if ($site) {
+	@sites = ($db->resultset("Site")->find($site));
+} else {
+	@sites = $db->resultset("Site")->search({active=>1})->all;
+}
+	
+my $new_listings=0;
+foreach my $site (@sites) {
+	my $scraper = Ext::Scraper->create_from_db($site,disallow=>$reject,require=>$requires);
+	say sprintf("Scraping %s...",$site->name);
+	foreach my $sub ($site->subsites) {
+		$scraper->url($sub->url);
+		$scraper->search_url($sub->search_url);
+		$scraper->search($keywords);
+		my $listings = $scraper->listings();
+		foreach my $listing (@$listings) {
+			if ($listing->{id}) {
+				if (!$db->resultset("Listing")->count({site_listing_id=>$listing->{id}})) {
+					$scraper->details($listing,scorer=>$score_listing);
+					if (!$listing->{discard} && $listing->{score}>=0) {
+						my $company;
+						if ($listing->{company}) {
+							$company = $db->resultset("ListingCompany")->find_or_create({name=>$listing->{company}});
+						} else {
+							$company = $db->resultset("ListingCompany")->find(1);
+						}
+						if (!$company->blacklisted) {
+							$db->resultset("Listing")->create({
+								site_listing_id=>$listing->{id},
+								title=>$listing->{title},
+								url=>$scraper->uri($listing->{uri}),
+								posted=>$listing->{posted}||\'now()',
+								site_id=>$site->id,	
+								description=>$listing->{description},	
+								company_id=>$company->id,
+								score=>$listing->{score},
+							});
+							$new_listings++;
+						}
+					}
+				}
+			}
+		}
+	}
+}
+say "New Listings" if ($new_listings);
+
+
+
+
+
+
+__DATA__

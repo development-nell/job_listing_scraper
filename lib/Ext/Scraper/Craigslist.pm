@@ -29,12 +29,14 @@ sub listings {
 
 sub details  {
 	my $self = shift;
-		my ($listing,%opt) = @_;
+	my ($listing,%opt) = @_;
 
 	$self->get($listing->{uri});
 
     if ($opt{scorer}) {
-        $listing->{score} = $opt{scorer}->($self->content);
+		my $res = $opt{scorer}->($self->content);
+        $listing->{score} = $res->[0];
+		$listing->{matches} = $res->[1];
     }
 
 
